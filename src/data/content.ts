@@ -256,3 +256,31 @@ export const EXPERIENCES: Experience[] = [
     ],
   },
 ]
+
+export type GalleryItem = {
+  src: string
+  alt: string
+  tag: string
+  caption: string
+}
+
+export const GALLERY: GalleryItem[] = [
+  {
+    src: '/assets/gallery/gallery-1.jpg',
+    alt: 'Aktivitas komunitas dan program Setyorini Safitri',
+    tag: 'Community Event',
+    caption: 'Membangun ruang belajar yang inklusif dan berdampak.',
+  },
+  {
+    src: '/assets/gallery/gallery-2.jpg',
+    alt: 'Sesi partnership dan kolaborasi strategis',
+    tag: 'Partnership',
+    caption: 'Kolaborasi lintas sektor untuk program yang lebih besar.',
+  },
+  {
+    src: '/assets/gallery/gallery-3.jpg',
+    alt: 'Workshop dan sesi pelatihan komunitas',
+    tag: 'Workshop & Training',
+    caption: 'Fasilitasi workshop yang menggerakkan potensi peserta.',
+  },
+]
