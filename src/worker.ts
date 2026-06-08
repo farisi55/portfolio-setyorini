@@ -114,6 +114,16 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
 
   if (method === 'OPTIONS') return jsonResponse('', 204)
 
+  if (path === '/api/auth/debug' && method === 'GET') {
+    return jsonResponse({
+      hasAdminUsername: Boolean(env.ADMIN_USERNAME),
+      hasAdminPassword: Boolean(env.ADMIN_PASSWORD),
+      hasSessionSecret: Boolean(env.SESSION_SECRET),
+      sessionSecretLength: env.SESSION_SECRET?.length ?? 0,
+      hasGalleryKv: Boolean(env.GALLERY_KV),
+    })
+  }
+
   if (path === '/api/auth/login' && method === 'POST') {
     const body = (await request.json()) as { username?: string; password?: string }
     const configError = validateAdminConfig(env)
