@@ -1,6 +1,7 @@
 name = "portfolio-setyorini"
 compatibility_date = "2025-05-23"
 main = "src/worker.ts"
+keep_vars = true
 
 [assets]
 directory = "./dist"
