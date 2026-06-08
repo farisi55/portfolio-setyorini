@@ -8,5 +8,5 @@ not_found_handling = "single-page-application"
 binding = "ASSETS"
 
 [[kv_namespaces]]
-binding = "GALLERY_KV"
-id = "GANTI_DENGAN_NAMESPACE_ID_DARI_DASHBOARD"
+binding = "gallery-kv"
+id = "d13cf5ddf65c407ea9e77bb1c9d3d5e6"
