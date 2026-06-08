@@ -56,7 +56,20 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+function validateAdminConfig(env: Env): string | null {
+  if (!env.ADMIN_USERNAME) return 'ADMIN_USERNAME belum dikonfigurasi'
+  if (!env.ADMIN_PASSWORD) return 'ADMIN_PASSWORD belum dikonfigurasi'
+  if (!env.SESSION_SECRET) return 'SESSION_SECRET belum dikonfigurasi'
+  if (env.SESSION_SECRET.length < 32) return 'SESSION_SECRET harus minimal 32 karakter'
+  return null
+}
+
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
+  const configError = validateAdminConfig(env)
+  if (configError) {
+    return jsonResponse({ error: configError }, 500)
+  }
+
   const token = getToken(request)
   if (!token || !(await validateToken(token, env))) {
     return jsonResponse({ error: 'Unauthorized' }, 401)
@@ -103,11 +116,18 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
 
   if (path === '/api/auth/login' && method === 'POST') {
     const body = (await request.json()) as { username?: string; password?: string }
-    if (body.username === env.ADMIN_USERNAME && body.password === env.ADMIN_PASSWORD) {
-      const token = await makeToken(body.username, body.password, env.SESSION_SECRET)
+    const configError = validateAdminConfig(env)
+    if (configError) {
+      return jsonResponse({ error: configError }, 500)
+    }
+
+    const username = body.username?.trim() ?? ''
+    const password = body.password ?? ''
+    if (username === env.ADMIN_USERNAME.trim() && password === env.ADMIN_PASSWORD) {
+      const token = await makeToken(env.ADMIN_USERNAME, env.ADMIN_PASSWORD, env.SESSION_SECRET)
       return jsonResponse({ token })
     }
-    return jsonResponse({ error: 'Invalid credentials' }, 401)
+    return jsonResponse({ error: 'Username atau password salah' }, 401)
   }
 
   if (path === '/api/gallery' && method === 'GET') {
