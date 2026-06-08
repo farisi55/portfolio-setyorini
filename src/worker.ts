@@ -3,7 +3,6 @@
 interface Env {
   ASSETS: { fetch: (request: Request) => Promise<Response> }
   GALLERY_KV: KVNamespace
-  GALLERY_R2: R2Bucket
   ADMIN_USERNAME: string
   ADMIN_PASSWORD: string
   SESSION_SECRET: string
@@ -66,8 +65,11 @@ async function requireAuth(request: Request, env: Env): Promise<Response | null>
   return null
 }
 
+const metaKey = (id: number) => `gallery:meta:${id}`
+const imageKey = (id: number) => `gallery:img:${id}`
+
 async function listGallery(env: Env): Promise<GalleryItem[]> {
-  const list = await env.GALLERY_KV.list({ prefix: 'gallery:' })
+  const list = await env.GALLERY_KV.list({ prefix: 'gallery:meta:' })
   const items: GalleryItem[] = []
 
   for (const key of list.keys) {
@@ -79,17 +81,17 @@ async function listGallery(env: Env): Promise<GalleryItem[]> {
 }
 
 async function getItem(id: number, env: Env): Promise<GalleryItem | null> {
-  const raw = await env.GALLERY_KV.get(`gallery:${id}`)
+  const raw = await env.GALLERY_KV.get(metaKey(id))
   return raw ? (JSON.parse(raw) as GalleryItem) : null
 }
 
 async function saveItem(item: GalleryItem, env: Env): Promise<void> {
-  await env.GALLERY_KV.put(`gallery:${item.id}`, JSON.stringify(item))
+  await env.GALLERY_KV.put(metaKey(item.id), JSON.stringify(item))
 }
 
 async function deleteItem(id: number, env: Env): Promise<void> {
-  await env.GALLERY_KV.delete(`gallery:${id}`)
-  await env.GALLERY_R2.delete(`gallery-${id}.jpg`)
+  await env.GALLERY_KV.delete(metaKey(id))
+  await env.GALLERY_KV.delete(imageKey(id))
 }
 
 async function handleAPI(request: Request, env: Env): Promise<Response> {
@@ -138,8 +140,8 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
     let hasImage = false
 
     if (file instanceof File && file.size > 0) {
-      await env.GALLERY_R2.put(`gallery-${id}.jpg`, await file.arrayBuffer(), {
-        httpMetadata: { contentType: file.type || 'image/jpeg' },
+      await env.GALLERY_KV.put(imageKey(id), await file.arrayBuffer(), {
+        metadata: { contentType: 'image/jpeg' },
       })
       hasImage = true
     } else {
@@ -162,17 +164,19 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
 
 async function handleGalleryImage(url: URL, env: Env): Promise<Response> {
   const filename = url.pathname.split('/').pop() ?? ''
-  const object = await env.GALLERY_R2.get(filename)
+  const match = filename.match(/^gallery-(\d+)\.jpg$/)
 
-  if (!object) return new Response('Not found', { status: 404 })
+  if (!match) return new Response('Not found', { status: 404 })
 
-  const headers = new Headers()
-  if (object.httpMetadata?.contentType) {
-    headers.set('Content-Type', object.httpMetadata.contentType)
-  }
-  headers.set('Cache-Control', 'public, max-age=86400')
+  const image = await env.GALLERY_KV.get(imageKey(Number(match[1])), { type: 'arrayBuffer' })
+  if (!image) return new Response('Not found', { status: 404 })
 
-  return new Response(object.body, { headers })
+  return new Response(image, {
+    headers: {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  })
 }
 
 export default {
