@@ -1,4 +1,5 @@
 import { About } from './components/About'
+import { Admin } from './components/Admin'
 import { Contact } from './components/Contact'
 import { Experience } from './components/Experience'
 import { Footer } from './components/Footer'
@@ -9,6 +10,10 @@ import { Skills } from './components/Skills'
 import { Stats } from './components/Stats'
 
 function App() {
+  if (window.location.pathname === '/admin') {
+    return <Admin />
+  }
+
   return (
     <>
       <Navbar />

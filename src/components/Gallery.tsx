@@ -1,9 +1,15 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from 'react'
-import { GALLERY, type GalleryItem } from '../data/content'
 
-const TOTAL = GALLERY.length
 const MIN_SWIPE = 50
+
+interface GalleryItem {
+  id: number
+  tag: string
+  caption: string
+  alt: string
+  hasImage: boolean
+}
 
 type GalleryImageProps = {
   item: GalleryItem
@@ -22,7 +28,7 @@ function GalleryImage({
 }: GalleryImageProps) {
   const [missing, setMissing] = useState(false)
 
-  if (missing) {
+  if (missing || !item.hasImage) {
     return (
       <div
         role="img"
@@ -34,21 +40,45 @@ function GalleryImage({
     )
   }
 
-  return <img src={item.src} alt={item.alt} className={className} loading="lazy" onError={() => setMissing(true)} />
+  return (
+    <img
+      src={`/assets/gallery/gallery-${item.id}.jpg`}
+      alt={item.alt}
+      className={className}
+      loading="lazy"
+      onError={() => setMissing(true)}
+    />
+  )
 }
 
 export function Gallery() {
+  const [items, setItems] = useState<GalleryItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [active, setActive] = useState(0)
   const [animKey, setAnimKey] = useState(0)
   const touchStart = useRef(0)
   const touchEnd = useRef(0)
-  const item = GALLERY[active]
+  const total = items.length
+  const item = items[active]
 
-  const goTo = useCallback((index: number) => {
-    if (index < 0 || index >= TOTAL) return
-    setActive(index)
-    setAnimKey((key) => key + 1)
+  useEffect(() => {
+    fetch('/api/gallery')
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Gallery unavailable'))))
+      .then((data: GalleryItem[]) => {
+        setItems(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
+
+  const goTo = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= total) return
+      setActive(index)
+      setAnimKey((key) => key + 1)
+    },
+    [total],
+  )
 
   const prev = useCallback(() => goTo(active - 1), [active, goTo])
   const next = useCallback(() => goTo(active + 1), [active, goTo])
@@ -78,9 +108,9 @@ export function Gallery() {
 
   const renderDots = (className: string) => (
     <div role="tablist" aria-label="Gallery navigation" className={className}>
-      {GALLERY.map((galleryItem, index) => (
+      {items.map((galleryItem, index) => (
         <button
-          key={galleryItem.src}
+          key={galleryItem.id}
           type="button"
           role="tab"
           aria-selected={index === active}
@@ -97,7 +127,7 @@ export function Gallery() {
   )
 
   const renderArrowButton = (direction: 'prev' | 'next', className: string) => {
-    const disabled = direction === 'prev' ? active === 0 : active === TOTAL - 1
+    const disabled = direction === 'prev' ? active === 0 : active === total - 1
     const Icon = direction === 'prev' ? ChevronLeft : ChevronRight
 
     return (
@@ -114,6 +144,20 @@ export function Gallery() {
     )
   }
 
+  if (loading) {
+    return (
+      <section id="gallery" className="bg-brand-beige py-20 sm:py-24">
+        <div className="section-shell">
+          <div className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-brownLight border-t-brand-brown" />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (!item) return null
+
   return (
     <section id="gallery" className="bg-brand-beige py-20 sm:py-24">
       <div className="section-shell">
@@ -124,7 +168,7 @@ export function Gallery() {
             <span className="font-body text-sm text-brand-gray">
               <span className="font-bold text-brand-brown">{active + 1}</span>
               <span className="mx-1 text-brand-brownLight/60">/</span>
-              {TOTAL}
+              {total}
             </span>
           </div>
         </div>
@@ -144,7 +188,7 @@ export function Gallery() {
             <div
               key={animKey}
               role="region"
-              aria-label={`Gallery foto ${active + 1} dari ${TOTAL}`}
+              aria-label={`Gallery foto ${active + 1} dari ${total}`}
               tabIndex={0}
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
@@ -152,7 +196,7 @@ export function Gallery() {
             >
               <div className="aspect-[4/5] w-full">
                 <GalleryImage
-                  key={item.src}
+                  key={item.id}
                   item={item}
                   className="h-full w-full object-cover object-center transition-transform duration-700 ease-out hover:scale-[1.03]"
                 />
@@ -191,7 +235,7 @@ export function Gallery() {
               <span className="font-body text-sm text-brand-gray">
                 <span className="font-bold text-brand-brown">{active + 1}</span>
                 <span className="mx-1 text-brand-brownLight/50">/</span>
-                {TOTAL}
+                {total}
               </span>
             </div>
 
@@ -216,9 +260,9 @@ export function Gallery() {
             </div>
 
             <div className="mt-6 hidden gap-3 lg:flex">
-              {GALLERY.map((galleryItem, index) => (
+              {items.map((galleryItem, index) => (
                 <button
-                  key={`thumb-${galleryItem.src}`}
+                  key={`thumb-${galleryItem.id}`}
                   type="button"
                   aria-label={`Pilih foto ${index + 1}: ${galleryItem.tag}`}
                   onClick={() => goTo(index)}
