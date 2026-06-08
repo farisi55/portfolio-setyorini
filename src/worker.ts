@@ -80,6 +80,7 @@ async function requireAuth(request: Request, env: Env): Promise<Response | null>
 
 const metaKey = (id: number) => `gallery:meta:${id}`
 const imageKey = (id: number) => `gallery:img:${id}`
+const thumbKey = (id: number) => `gallery:thumb:${id}`
 
 async function listGallery(env: Env): Promise<GalleryItem[]> {
   const list = await env.GALLERY_KV.list({ prefix: 'gallery:meta:' })
@@ -105,6 +106,7 @@ async function saveItem(item: GalleryItem, env: Env): Promise<void> {
 async function deleteItem(id: number, env: Env): Promise<void> {
   await env.GALLERY_KV.delete(metaKey(id))
   await env.GALLERY_KV.delete(imageKey(id))
+  await env.GALLERY_KV.delete(thumbKey(id))
 }
 
 async function handleAPI(request: Request, env: Env): Promise<Response> {
@@ -162,6 +164,7 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
     const caption = String(form.get('caption') ?? '')
     const alt = String(form.get('alt') ?? tag)
     const file = form.get('image')
+    const thumbFile = form.get('thumbnail')
 
     if (!Number.isInteger(id) || id <= 0) {
       return jsonResponse({ error: 'Invalid id' }, 400)
@@ -171,8 +174,15 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
 
     if (file instanceof File && file.size > 0) {
       await env.GALLERY_KV.put(imageKey(id), await file.arrayBuffer(), {
-        metadata: { contentType: 'image/jpeg' },
+        metadata: { contentType: file.type || 'image/webp' },
       })
+
+      if (thumbFile instanceof File && thumbFile.size > 0) {
+        await env.GALLERY_KV.put(thumbKey(id), await thumbFile.arrayBuffer(), {
+          metadata: { contentType: thumbFile.type || 'image/webp' },
+        })
+      }
+
       hasImage = true
     } else {
       const existing = await getItem(id, env)
@@ -194,17 +204,26 @@ async function handleAPI(request: Request, env: Env): Promise<Response> {
 
 async function handleGalleryImage(url: URL, env: Env): Promise<Response> {
   const filename = url.pathname.split('/').pop() ?? ''
-  const match = filename.match(/^gallery-(\d+)\.jpg$/)
+  const thumbMatch = filename.match(/^thumb-gallery-(\d+)\.(webp|jpg|jpeg|png)$/)
+  const fullMatch = filename.match(/^gallery-(\d+)\.(webp|jpg|jpeg|png)$/)
+  const match = thumbMatch ?? fullMatch
 
   if (!match) return new Response('Not found', { status: 404 })
 
-  const image = await env.GALLERY_KV.get(imageKey(Number(match[1])), { type: 'arrayBuffer' })
-  if (!image) return new Response('Not found', { status: 404 })
+  const id = Number(match[1])
+  const key = thumbMatch ? thumbKey(id) : imageKey(id)
+  let result = await env.GALLERY_KV.getWithMetadata<{ contentType?: string }>(key, { type: 'arrayBuffer' })
 
-  return new Response(image, {
+  if (!result.value && thumbMatch) {
+    result = await env.GALLERY_KV.getWithMetadata<{ contentType?: string }>(imageKey(id), { type: 'arrayBuffer' })
+  }
+
+  if (!result.value) return new Response('Not found', { status: 404 })
+
+  return new Response(result.value, {
     headers: {
-      'Content-Type': 'image/jpeg',
-      'Cache-Control': 'public, max-age=3600',
+      'Content-Type': result.metadata?.contentType ?? 'image/webp',
+      'Cache-Control': 'public, max-age=604800, immutable',
     },
   })
 }

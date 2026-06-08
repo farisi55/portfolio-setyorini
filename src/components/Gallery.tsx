@@ -1,7 +1,10 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type TouchEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 
 const MIN_SWIPE = 50
+const THUMBNAIL_WINDOW = 2
+
+type ImageVariant = 'full' | 'thumb'
 
 interface GalleryItem {
   id: number
@@ -13,20 +16,35 @@ interface GalleryItem {
 
 type GalleryImageProps = {
   item: GalleryItem
+  variant?: ImageVariant
   className?: string
   fallbackClassName?: string
   fallbackText?: string
   fallbackTextClassName?: string
+  loading?: 'eager' | 'lazy'
+  fetchPriority?: 'high' | 'low' | 'auto'
+}
+
+function galleryImageSrc(item: GalleryItem, variant: ImageVariant) {
+  const filename = variant === 'thumb' ? `thumb-gallery-${item.id}.webp` : `gallery-${item.id}.webp`
+  return `/assets/gallery/${filename}`
 }
 
 function GalleryImage({
   item,
+  variant = 'full',
   className = '',
   fallbackClassName = '',
   fallbackText = item.alt,
   fallbackTextClassName = 'font-heading text-base font-bold text-brand-brownLight',
+  loading = 'lazy',
+  fetchPriority = 'auto',
 }: GalleryImageProps) {
   const [missing, setMissing] = useState(false)
+
+  useEffect(() => {
+    setMissing(false)
+  }, [item.id, variant])
 
   if (missing || !item.hasImage) {
     return (
@@ -42,13 +60,35 @@ function GalleryImage({
 
   return (
     <img
-      src={`/assets/gallery/gallery-${item.id}.jpg`}
+      src={galleryImageSrc(item, variant)}
       alt={item.alt}
       className={className}
-      loading="lazy"
+      loading={loading}
+      decoding="async"
+      fetchPriority={fetchPriority}
       onError={() => setMissing(true)}
     />
   )
+}
+
+function buildThumbnailIndexes(active: number, total: number): number[] {
+  if (total <= 0) return []
+
+  const maxVisible = THUMBNAIL_WINDOW * 2 + 1
+  let start = Math.max(0, active - THUMBNAIL_WINDOW)
+  let end = Math.min(total - 1, active + THUMBNAIL_WINDOW)
+
+  const visibleCount = end - start + 1
+  if (visibleCount < maxVisible) {
+    const missing = maxVisible - visibleCount
+    if (start === 0) {
+      end = Math.min(total - 1, end + missing)
+    } else if (end === total - 1) {
+      start = Math.max(0, start - missing)
+    }
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index)
 }
 
 export function Gallery() {
@@ -60,12 +100,14 @@ export function Gallery() {
   const touchEnd = useRef(0)
   const total = items.length
   const item = items[active]
+  const thumbnailIndexes = useMemo(() => buildThumbnailIndexes(active, total), [active, total])
 
   useEffect(() => {
     fetch('/api/gallery')
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Gallery unavailable'))))
       .then((data: GalleryItem[]) => {
         setItems(data)
+        setActive(0)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -73,11 +115,11 @@ export function Gallery() {
 
   const goTo = useCallback(
     (index: number) => {
-      if (index < 0 || index >= total) return
+      if (index < 0 || index >= total || index === active) return
       setActive(index)
       setAnimKey((key) => key + 1)
     },
-    [total],
+    [active, total],
   )
 
   const prev = useCallback(() => goTo(active - 1), [active, goTo])
@@ -106,25 +148,37 @@ export function Gallery() {
     if (delta < 0) prev()
   }
 
-  const renderDots = (className: string) => (
-    <div role="tablist" aria-label="Gallery navigation" className={className}>
-      {items.map((galleryItem, index) => (
-        <button
-          key={galleryItem.id}
-          type="button"
-          role="tab"
-          aria-selected={index === active}
-          aria-label={`Lihat foto ${index + 1}: ${galleryItem.tag}`}
-          onClick={() => goTo(index)}
-          className={`rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange ${
-            index === active
-              ? 'h-2.5 w-8 bg-brand-brown'
-              : 'h-2.5 w-2.5 bg-brand-brownLight/40 hover:bg-brand-brownLight/70'
-          }`}
-        />
-      ))}
-    </div>
-  )
+  const renderDots = (className: string) => {
+    if (total > 20) {
+      return (
+        <div aria-label="Gallery navigation" className={className}>
+          <span className="rounded-full border border-brand-brownLight/30 bg-brand-white px-3 py-1 font-body text-xs font-bold text-brand-brown">
+            {active + 1} / {total}
+          </span>
+        </div>
+      )
+    }
+
+    return (
+      <div role="tablist" aria-label="Gallery navigation" className={className}>
+        {items.map((galleryItem, index) => (
+          <button
+            key={galleryItem.id}
+            type="button"
+            role="tab"
+            aria-selected={index === active}
+            aria-label={`Lihat foto ${index + 1}: ${galleryItem.tag}`}
+            onClick={() => goTo(index)}
+            className={`rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange ${
+              index === active
+                ? 'h-2.5 w-8 bg-brand-brown'
+                : 'h-2.5 w-2.5 bg-brand-brownLight/40 hover:bg-brand-brownLight/70'
+            }`}
+          />
+        ))}
+      </div>
+    )
+  }
 
   const renderArrowButton = (direction: 'prev' | 'next', className: string) => {
     const disabled = direction === 'prev' ? active === 0 : active === total - 1
@@ -198,6 +252,9 @@ export function Gallery() {
                 <GalleryImage
                   key={item.id}
                   item={item}
+                  variant="full"
+                  loading="eager"
+                  fetchPriority="high"
                   className="h-full w-full object-cover object-center transition-transform duration-700 ease-out hover:scale-[1.03]"
                 />
               </div>
@@ -255,34 +312,38 @@ export function Gallery() {
 
               {renderArrowButton(
                 'next',
-                'flex h-12 w-12 items-center justify-center rounded-full border border-brand-brownLight/30 bg-brand-white text-brand-brown shadow-md transition-all duration-200 hover:border-brand-brown hover:bg-brand-brown hover:text-brand-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-beige',
+                'flex h-12 w-12 items-center justify-center rounded-full border border-brand-brownLight/30 bg-brand-white text-brand-brown shadow-md transition-all duration-200 hover:border-brand-brown hover:bg-brand-brown hover:text-brand-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-beige',
               )}
             </div>
 
             <div className="mt-6 hidden gap-3 lg:flex">
-              {items.map((galleryItem, index) => (
-                <button
-                  key={`thumb-${galleryItem.id}`}
-                  type="button"
-                  aria-label={`Pilih foto ${index + 1}: ${galleryItem.tag}`}
-                  onClick={() => goTo(index)}
-                  className={`relative overflow-hidden rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-beige ${
-                    index === active
-                      ? 'scale-105 opacity-100 ring-2 ring-brand-orange ring-offset-2 ring-offset-brand-beige'
-                      : 'opacity-50 hover:scale-105 hover:opacity-80'
-                  }`}
-                >
-                  <div className="aspect-[4/5] w-16">
-                    <GalleryImage
-                      item={galleryItem}
-                      className="h-full w-full object-cover object-center"
-                      fallbackClassName="px-2"
-                      fallbackText={galleryItem.tag}
-                      fallbackTextClassName="font-heading text-[10px] font-extrabold leading-tight text-brand-brownLight"
-                    />
-                  </div>
-                </button>
-              ))}
+              {thumbnailIndexes.map((index) => {
+                const galleryItem = items[index]
+                return (
+                  <button
+                    key={`thumb-${galleryItem.id}`}
+                    type="button"
+                    aria-label={`Pilih foto ${index + 1}: ${galleryItem.tag}`}
+                    onClick={() => goTo(index)}
+                    className={`relative overflow-hidden rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-beige ${
+                      index === active
+                        ? 'scale-105 opacity-100 ring-2 ring-brand-orange ring-offset-2 ring-offset-brand-beige'
+                        : 'opacity-50 hover:scale-105 hover:opacity-80'
+                    }`}
+                  >
+                    <div className="aspect-[4/5] w-16">
+                      <GalleryImage
+                        item={galleryItem}
+                        variant="thumb"
+                        className="h-full w-full object-cover object-center"
+                        fallbackClassName="px-2"
+                        fallbackText={galleryItem.tag}
+                        fallbackTextClassName="font-heading text-[10px] font-extrabold leading-tight text-brand-brownLight"
+                      />
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -11,7 +11,11 @@ interface GalleryItem {
 
 type Toast = { message: string; type: 'success' | 'error' } | null
 
-const MAX_SLOTS = 10
+const MAX_SLOTS = 100
+const FULL_IMAGE_MAX_WIDTH = 1600
+const FULL_IMAGE_QUALITY = 0.8
+const THUMB_IMAGE_MAX_WIDTH = 320
+const THUMB_IMAGE_QUALITY = 0.68
 
 function apiHeaders(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` }
@@ -19,6 +23,54 @@ function apiHeaders(token: string): Record<string, string> {
 
 async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   return fetch(url, options)
+}
+
+function galleryImageSrc(id: number, variant: 'full' | 'thumb', cacheBust?: number) {
+  const filename = variant === 'thumb' ? `thumb-gallery-${id}.webp` : `gallery-${id}.webp`
+  const query = cacheBust ? `?t=${cacheBust}` : ''
+  return `/assets/gallery/${filename}${query}`
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('Image compression failed'))
+    }, type, quality)
+  })
+}
+
+async function compressImage(file: File, maxWidth: number, quality: number, outputName: string): Promise<File> {
+  const objectUrl = URL.createObjectURL(file)
+
+  try {
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = objectUrl
+
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('Invalid image'))
+    })
+
+    const scale = Math.min(1, maxWidth / image.naturalWidth)
+    const width = Math.max(1, Math.round(image.naturalWidth * scale))
+    const height = Math.max(1, Math.round(image.naturalHeight * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Canvas unavailable')
+
+    context.drawImage(image, 0, 0, width, height)
+
+    const blob = await canvasToBlob(canvas, 'image/webp', quality)
+    return new File([blob], outputName, { type: 'image/webp' })
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
 }
 
 function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
@@ -224,7 +276,18 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
       form.append('tag', tag.trim())
       form.append('caption', caption.trim())
       form.append('alt', tag.trim())
-      if (imageFile) form.append('image', imageFile)
+      if (imageFile) {
+        const optimizedImage = await compressImage(imageFile, FULL_IMAGE_MAX_WIDTH, FULL_IMAGE_QUALITY, `gallery-${selectedId}.webp`)
+        const optimizedThumbnail = await compressImage(
+          imageFile,
+          THUMB_IMAGE_MAX_WIDTH,
+          THUMB_IMAGE_QUALITY,
+          `thumb-gallery-${selectedId}.webp`,
+        )
+
+        form.append('image', optimizedImage)
+        form.append('thumbnail', optimizedThumbnail)
+      }
 
       const response = await apiFetch('/api/gallery', {
         method: 'POST',
@@ -275,7 +338,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
   }
 
   const existingItem = items.find((item) => item.id === selectedId)
-  const currentImageSrc = existingItem?.hasImage ? `/assets/gallery/gallery-${selectedId}.jpg?t=${cacheBust}` : null
+  const currentImageSrc = existingItem?.hasImage ? galleryImageSrc(selectedId, 'full', cacheBust) : null
   const maxId = items.length > 0 ? Math.max(...items.map((item) => item.id)) : 0
   const slotMax = Math.min(maxId + 1, MAX_SLOTS)
   const slotIds = Array.from({ length: slotMax }, (_, index) => index + 1)
@@ -389,7 +452,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                     {imageFile ? imageFile.name : 'Klik atau drag foto ke sini'}
                   </p>
                   <p className="text-xs text-[#6B7280]">
-                    JPG, PNG, WEBP, dll - otomatis disimpan sebagai gallery-{selectedId}.jpg
+                    JPG, PNG, WEBP - otomatis dikompresi ke WebP dan disimpan ke Workers KV
                   </p>
                 </div>
                 <input
@@ -511,7 +574,7 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F5EFE6]">
                     {galleryItem.hasImage && (
                       <img
-                        src={`/assets/gallery/gallery-${galleryItem.id}.jpg`}
+                        src={galleryImageSrc(galleryItem.id, 'thumb', cacheBust)}
                         alt={galleryItem.alt}
                         className="h-full w-full object-cover"
                       />

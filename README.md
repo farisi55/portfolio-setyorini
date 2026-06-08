@@ -71,3 +71,20 @@ export default defineConfig([
   },
 ])
 ```
+
+## Gallery performance note
+
+Gallery tidak memakai file statis dari `public/assets/gallery` lagi. Foto diambil dari Cloudflare Workers KV melalui Worker route `/assets/gallery/*`.
+
+Optimasi yang diterapkan:
+
+- `/api/gallery` hanya mengambil metadata, bukan binary image.
+- Foto utama yang dimuat hanya foto aktif.
+- Thumbnail desktop dibatasi maksimal 5 item: 2 sebelum, 1 aktif, dan 2 sesudah.
+- Admin upload otomatis membuat 2 versi WebP:
+  - full image: max width 1600px, quality 0.8
+  - thumbnail: max width 320px, quality 0.68
+- Worker menyimpan full image di `gallery:img:{id}` dan thumbnail di `gallery:thumb:{id}`.
+- Image response memakai cache header `public, max-age=604800, immutable`.
+
+Untuk skenario 100 foto, metadata tetap boleh di-load sekaligus karena ringan. Browser tidak merender 100 thumbnail image sekaligus.
