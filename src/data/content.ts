@@ -27,7 +27,7 @@ export const PERSONAL = {
   description:
     'Proven in end-to-end project coordination including planning, budgeting support, stakeholder management, implementation, monitoring, evaluation, and reporting. Experienced in managing donor-funded and impact-oriented projects aligned with SDGs.',
   location: 'Bogor, Jawa Barat, Indonesia',
-  email: 'setyorini.safitri@gmail.com',
+  email: 'tanya@setyorinisafitri.com',
   phone: '0838 1999 2723',
   linkedin: 'https://linkedin.com/in/setyorinisafitri',
   instagram: '@setyorinisafitri',
