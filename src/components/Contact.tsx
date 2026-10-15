@@ -3,7 +3,7 @@ import { AtSign, Mail, MapPin, Network, Phone, Send } from 'lucide-react'
 import { PERSONAL } from '../data/content'
 
 const contactItems = [
-  { label: 'Phone', value: PERSONAL.phone, icon: Phone, href: `tel:${PERSONAL.phone.replace(/\s/g, '')}` },
+  { label: 'Phone', value: PERSONAL.phone, icon: Phone, href: 'https://wa.me/6283819992723' },
   { label: 'Email', value: PERSONAL.email, icon: Mail, href: `mailto:${PERSONAL.email}` },
   { label: 'LinkedIn', value: 'setyorinisafitri', icon: Network, href: PERSONAL.linkedin },
   { label: 'Instagram', value: PERSONAL.instagram, icon: AtSign, href: 'https://instagram.com/setyorinisafitri' },
