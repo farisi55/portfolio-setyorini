@@ -6,4 +6,4 @@ Upload your images here:
 - logo-productive-mamas.png
 - logo-classmate.png
 - logo-babies-bogor.png
-- og-image.jpg         (1200x630px untuk social sharing)
+- og-image.png         (1200x630px untuk social sharing)

@@ -88,3 +88,11 @@ Optimasi yang diterapkan:
 - Image response memakai cache header `public, max-age=604800, immutable`.
 
 Untuk skenario 100 foto, metadata tetap boleh di-load sekaligus karena ringan. Browser tidak merender 100 thumbnail image sekaligus.
+
+## Mengubah konten
+
+- Semua copy layanan, values, proses, FAQ, dan teks kontak ada di `src/data/offer.ts`.
+- Angka bukti (tahun pengalaman, MoU, webinar, dan lainnya) memakai satu sumber kebenaran: `PROOF_VALUES` di `src/data/offer.ts`.
+- Nomor WhatsApp diturunkan dari `PERSONAL.phone` di `src/data/content.ts`. Bila nomor berubah, samakan juga nomor di blok `<noscript>` pada `index.html`.
+- `TESTIMONIALS` di `src/data/offer.ts` hanya diisi kutipan nyata dengan izin tertulis. Section Testimonials tampil otomatis saat daftar tidak kosong, dan tersembunyi saat kosong.
+

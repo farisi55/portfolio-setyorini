@@ -598,6 +598,16 @@ function AdminDashboard({ token, onLogout }: { token: string; onLogout: () => vo
 export function Admin() {
   const [token, setToken] = useState<string | null>(sessionStorage.getItem('admin_token'))
 
+  useEffect(() => {
+    const meta = document.createElement('meta')
+    meta.name = 'robots'
+    meta.content = 'noindex, nofollow'
+    document.head.appendChild(meta)
+    return () => {
+      meta.remove()
+    }
+  }, [])
+
   const handleLogin = (newToken: string) => setToken(newToken)
   const handleLogout = () => {
     sessionStorage.removeItem('admin_token')
