@@ -1,13 +1,31 @@
-import { Briefcase, Home, Image, Mail, Menu, Sparkles, User, X } from 'lucide-react'
+import { Briefcase, Home, Image, Mail, Menu, MessageCircle, Mic, Sparkles, User, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { buildIntentUrl } from '../lib/whatsapp'
+import { WhatsAppLink } from './WhatsAppLink'
 
 const links = [
   { label: 'Home', href: '#home', Icon: Home },
+  { label: 'Services', href: '#services', Icon: Mic },
   { label: 'About', href: '#about', Icon: User },
   { label: 'Skills', href: '#skills', Icon: Sparkles },
   { label: 'Gallery', href: '#gallery', Icon: Image },
   { label: 'Experience', href: '#experience', Icon: Briefcase },
   { label: 'Contact', href: '#contact', Icon: Mail },
+]
+
+// Section tanpa tautan sendiri dipetakan ke tautan terdekat agar penanda aktif tetap masuk akal.
+const SPY_SECTIONS = [
+  { id: 'home', navId: 'home' },
+  { id: 'services', navId: 'services' },
+  { id: 'values', navId: 'services' },
+  { id: 'about', navId: 'about' },
+  { id: 'skills', navId: 'skills' },
+  { id: 'gallery', navId: 'gallery' },
+  { id: 'experience', navId: 'experience' },
+  { id: 'testimonials', navId: 'experience' },
+  { id: 'process', navId: 'contact' },
+  { id: 'faq', navId: 'contact' },
+  { id: 'contact', navId: 'contact' },
 ]
 
 export function Navbar() {
@@ -18,13 +36,11 @@ export function Navbar() {
   useEffect(() => {
     const onScroll = () => {
       setScrolled(window.scrollY > 24)
-      const current = links
-        .map((link) => link.href.replace('#', ''))
-        .findLast((id) => {
-          const section = document.getElementById(id)
-          return section ? section.offsetTop - 140 <= window.scrollY : false
-        })
-      if (current) setActive(current)
+      const current = SPY_SECTIONS.findLast(({ id }) => {
+        const section = document.getElementById(id)
+        return section ? section.offsetTop - 140 <= window.scrollY : false
+      })
+      if (current) setActive(current.navId)
     }
 
     onScroll()
@@ -52,45 +68,55 @@ export function Navbar() {
           </span>
         </a>
 
-        <div className="hidden items-center gap-2 rounded-full border border-brand-brownLight/20 bg-brand-white/35 px-2 py-1.5 shadow-sm md:flex">
+        <div className="hidden items-center gap-6 lg:flex xl:gap-8">
           {links.map((link) => {
             const id = link.href.replace('#', '')
-            const Icon = link.Icon
             const isActive = active === id
             return (
               <a
                 key={link.href}
                 href={link.href}
-                className={`focus-ring group flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-brand-brown text-brand-white shadow-sm'
-                    : 'text-brand-brown hover:bg-brand-beigeLight hover:text-brand-orange'
+                className={`focus-ring rounded-md px-1 py-2 text-sm font-semibold transition ${
+                  isActive ? 'text-brand-orange' : 'text-brand-brown hover:text-brand-orange'
                 }`}
               >
-                <Icon size={15} strokeWidth={2.2} />
-                <span>{link.label}</span>
+                {link.label}
               </a>
             )
           })}
+          <WhatsAppLink intent="general" size="sm">
+            WhatsApp
+          </WhatsAppLink>
         </div>
 
-        <button
-          type="button"
-          className="focus-ring grid h-11 w-11 place-items-center rounded-xl border border-brand-brownLight/40 bg-brand-white/40 text-brand-brown shadow-sm md:hidden"
-          aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <a
+            href={buildIntentUrl('general')}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Hubungi via WhatsApp (membuka tab baru)"
+            className="focus-ring grid h-11 w-11 place-items-center rounded-md bg-brand-brown text-brand-white transition hover:bg-brand-brownMid"
+          >
+            <MessageCircle size={20} aria-hidden="true" />
+          </a>
+          <button
+            type="button"
+            className="focus-ring grid h-11 w-11 place-items-center rounded-xl border border-brand-brownLight/40 bg-brand-white/40 text-brand-brown shadow-sm"
+            aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </nav>
 
       <div
-        className={`overflow-hidden border-t border-brand-brownLight/20 bg-brand-beige/98 shadow-sm transition-all md:hidden ${
-          open ? 'max-h-96' : 'max-h-0 border-transparent'
+        className={`overflow-hidden border-t border-brand-brownLight/20 bg-brand-beige transition-all lg:hidden ${
+          open ? 'max-h-[32rem]' : 'max-h-0 border-transparent'
         }`}
       >
-        <div className="section-shell flex flex-col gap-1 py-4">
+        <div className="section-shell flex max-h-[calc(100dvh-5rem)] flex-col overflow-y-auto py-4">
           {links.map((link) => {
             const id = link.href.replace('#', '')
             const Icon = link.Icon
@@ -109,6 +135,9 @@ export function Navbar() {
               </a>
             )
           })}
+          <WhatsAppLink intent="general" className="mt-3 w-full">
+            Hubungi via WhatsApp
+          </WhatsAppLink>
         </div>
       </div>
     </header>

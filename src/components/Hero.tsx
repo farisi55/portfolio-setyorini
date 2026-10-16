@@ -1,6 +1,8 @@
-import { ArrowRight, Mail } from 'lucide-react'
+import { ArrowDown, BadgeCheck, Handshake, Mic } from 'lucide-react'
 import { useState } from 'react'
+import { HERO } from '../data/offer'
 import { PERSONAL } from '../data/content'
+import { WhatsAppLink } from './WhatsAppLink'
 
 export function Hero() {
   const [photoMissing, setPhotoMissing] = useState(false)
@@ -13,26 +15,42 @@ export function Hero() {
 
       <div className="section-shell grid min-h-[calc(100vh-7rem)] items-center gap-12 py-12 lg:grid-cols-[1.08fr_0.92fr]">
         <div className="animate-fade-up">
-          <p className="section-label">Community Builder / Project Manager</p>
-          <h1 className="max-w-4xl font-heading text-5xl font-extrabold leading-[1.02] text-brand-brown sm:text-6xl lg:text-7xl">
-            COMMUNITY PROJECT & PARTNERSHIP LEAD
+          <p className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.22em] text-brand-brownMid">
+            <span aria-hidden="true" className="h-0.5 w-10 bg-brand-orange" />
+            {PERSONAL.name}
+          </p>
+          <h1 className="mt-5 font-heading text-5xl font-extrabold leading-[1.04] text-brand-brown sm:text-6xl lg:text-7xl">
+            {HERO.headline.primary}{' '}
+            <span className="mt-3 block text-3xl leading-tight text-brand-brownMid sm:text-4xl lg:text-5xl">
+              {HERO.headline.secondary}
+            </span>
           </h1>
-          <p className="mt-6 font-heading text-3xl font-extrabold text-brand-brown sm:text-4xl">SETYORINI SAFITRI</p>
-          <p className="mt-6 max-w-2xl text-base leading-8 text-brand-gray sm:text-lg">{PERSONAL.tagline}</p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <p className="mt-6 font-heading text-xl font-bold text-brand-brown sm:text-2xl">{HERO.brandLine}</p>
+          <p className="mt-4 max-w-2xl text-base leading-8 text-brand-brownMid sm:text-lg">{HERO.paragraph}</p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <WhatsAppLink intent={HERO.primaryCta.intent}>{HERO.primaryCta.label}</WhatsAppLink>
+            <WhatsAppLink variant="secondary" intent={HERO.secondaryCta.intent}>
+              {HERO.secondaryCta.label}
+            </WhatsAppLink>
             <a
-              href="#experience"
-              className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-brand-brown px-6 py-4 text-sm font-semibold text-brand-white transition hover:bg-brand-brownMid"
+              href={HERO.tertiaryCta.href}
+              className="focus-ring inline-flex items-center justify-center gap-2 rounded-md px-3 py-3 text-sm font-semibold text-brand-brown underline-offset-4 transition hover:text-brand-orange hover:underline"
             >
-              View My Work <ArrowRight size={18} />
-            </a>
-            <a
-              href="#contact"
-              className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-brand-brown px-6 py-4 text-sm font-semibold text-brand-brown transition hover:border-brand-orange hover:text-brand-orange"
-            >
-              Let's Connect <Mail size={18} />
+              {HERO.tertiaryCta.label}
+              <ArrowDown size={16} aria-hidden="true" />
             </a>
           </div>
+          <ul className="mt-8 flex flex-wrap gap-2" aria-label="Sertifikasi dan kemampuan">
+            {HERO.badges.map((badge) => (
+              <li
+                key={badge}
+                className="inline-flex items-center gap-2 rounded-full border border-brand-brownLight/50 bg-brand-white/70 px-3 py-1.5 text-xs font-semibold text-brand-brown"
+              >
+                <BadgeCheck size={14} className="text-brand-orange" aria-hidden="true" />
+                {badge}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="animate-fade-up-delay flex justify-center lg:justify-end">
@@ -59,6 +77,20 @@ export function Hero() {
                 Setyorini Safitri
               </span>
             </div>
+            <span
+              aria-hidden="true"
+              className="absolute bottom-12 left-0 hidden items-center gap-2 rounded-full bg-brand-white px-4 py-2.5 text-sm font-bold text-brand-brown shadow-lg sm:flex"
+            >
+              <Mic size={16} className="text-brand-orange" />
+              MC &amp; Public Speaker
+            </span>
+            <span
+              aria-hidden="true"
+              className="absolute right-0 top-14 hidden items-center gap-2 rounded-full bg-brand-white px-4 py-2.5 text-sm font-bold text-brand-brown shadow-lg sm:flex"
+            >
+              <Handshake size={16} className="text-brand-orange" />
+              Community Partnership
+            </span>
           </div>
         </div>
       </div>

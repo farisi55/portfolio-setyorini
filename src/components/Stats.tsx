@@ -1,13 +1,15 @@
+import { PROOF_VALUES } from '../data/offer'
+
 const highlights = [
-  { value: '7+', label: 'Years Experience' },
-  { value: '100+', label: 'MoUs Signed' },
-  { value: '34.5K+', label: 'Activities Documented' },
-  { value: '45+', label: 'Webinars Hosted' },
+  { value: PROOF_VALUES.years, label: 'Tahun Pengalaman' },
+  { value: PROOF_VALUES.mous, label: 'MoU & Sponsorship' },
+  { value: PROOF_VALUES.activities, label: 'Aktivitas Terdokumentasi' },
+  { value: PROOF_VALUES.webinars, label: 'Webinar Di-host' },
 ]
 
 export function Stats() {
   return (
-    <section className="bg-brand-brown py-12">
+    <section aria-label="Ringkasan pencapaian" className="bg-brand-brown py-12">
       <div className="section-shell grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {highlights.map((item) => (
           <div key={item.label} className="text-center">
