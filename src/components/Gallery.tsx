@@ -259,20 +259,6 @@ export function Gallery() {
                 />
               </div>
 
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-brand-brown/75 via-brand-brown/15 to-transparent"
-              />
-
-              <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
-                <span className="inline-flex rounded-full border border-brand-brownLight/50 bg-brand-white/10 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.16em] text-brand-brownLight backdrop-blur-sm">
-                  {item.tag}
-                </span>
-                <p className="mt-2 font-heading text-base font-semibold leading-snug text-brand-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)] sm:text-lg">
-                  {item.caption}
-                </p>
-              </div>
-
               <div aria-hidden="true" className="pointer-events-none absolute inset-3 rounded-xl border border-brand-white/10" />
             </div>
 

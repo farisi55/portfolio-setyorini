@@ -1,4 +1,4 @@
-import { ArrowDown, BadgeCheck, Handshake, Mic } from 'lucide-react'
+import { ArrowDown, BadgeCheck } from 'lucide-react'
 import { useState } from 'react'
 import { HERO } from '../data/offer'
 import { PERSONAL } from '../data/content'
@@ -77,20 +77,6 @@ export function Hero() {
                 Setyorini Safitri
               </span>
             </div>
-            <span
-              aria-hidden="true"
-              className="absolute bottom-12 left-0 hidden items-center gap-2 rounded-full bg-brand-white px-4 py-2.5 text-sm font-bold text-brand-brown shadow-lg sm:flex"
-            >
-              <Mic size={16} className="text-brand-orange" />
-              MC &amp; Public Speaker
-            </span>
-            <span
-              aria-hidden="true"
-              className="absolute right-0 top-14 hidden items-center gap-2 rounded-full bg-brand-white px-4 py-2.5 text-sm font-bold text-brand-brown shadow-lg sm:flex"
-            >
-              <Handshake size={16} className="text-brand-orange" />
-              Community Partnership
-            </span>
           </div>
         </div>
       </div>
